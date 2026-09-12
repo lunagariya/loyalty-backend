@@ -1,0 +1,1 @@
+import { Router } from 'express';import { param } from 'express-validator';import { redeem } from '../../controllers/customer.controller';import { validate } from '../../middlewares/validate';import { asyncHandler } from '../../utils/asyncHandler';export const redeemRouter=Router();redeemRouter.post('/:rewardId',[param('rewardId').isMongoId(),validate],asyncHandler(redeem));

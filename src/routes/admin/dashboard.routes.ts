@@ -1,0 +1,1 @@
+import { Router } from 'express';import { dashboard } from '../../controllers/admin.controller';import { asyncHandler } from '../../utils/asyncHandler';export const dashboardRouter=Router();dashboardRouter.get('/summary',asyncHandler(dashboard));

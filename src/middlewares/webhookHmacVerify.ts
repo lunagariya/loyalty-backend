@@ -1,0 +1,4 @@
+import crypto from 'crypto';
+import { RequestHandler } from 'express';
+import { env } from '../config/env';
+export const webhookHmacVerify:RequestHandler=(req,res,next)=>{const supplied=req.header('X-Shopify-Hmac-Sha256')||'';const raw=req.body as Buffer;if(!Buffer.isBuffer(raw))return res.status(400).json({success:false,error:{message:'Raw body required',code:'INVALID_BODY'}});const expected=crypto.createHmac('sha256',env.shopifyApiSecret).update(raw).digest('base64');const valid=supplied.length===expected.length&&crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected));if(!valid)return res.status(401).json({success:false,error:{message:'Invalid webhook signature',code:'INVALID_HMAC'}});req.rawBody=raw;try{req.body=JSON.parse(raw.toString('utf8'));next();}catch{return res.status(400).json({success:false,error:{message:'Invalid JSON',code:'INVALID_JSON'}});}};

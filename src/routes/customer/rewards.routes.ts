@@ -1,0 +1,1 @@
+import { Router } from 'express';import { rewards } from '../../controllers/customer.controller';import { asyncHandler } from '../../utils/asyncHandler';export const customerRewardsRouter=Router();customerRewardsRouter.get('/available',asyncHandler(rewards));

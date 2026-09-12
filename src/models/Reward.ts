@@ -1,0 +1,4 @@
+import { Schema, model } from 'mongoose';
+export interface IReward {shopDomain:string;name:string;type:'percentage_discount'|'fixed_discount'|'free_shipping'|'free_product';value?:number;freeProductId?:string;pointsRequired:number;usageLimitPerCustomer?:number|null;isActive:boolean;createdAt:Date;updatedAt:Date}
+const schema=new Schema<IReward>({shopDomain:{type:String,required:true,index:true},name:{type:String,required:true},type:{type:String,enum:['percentage_discount','fixed_discount','free_shipping','free_product'],required:true},value:{type:Number,min:0},freeProductId:String,pointsRequired:{type:Number,required:true,min:1},usageLimitPerCustomer:{type:Number,default:null,min:1},isActive:{type:Boolean,default:true}},{timestamps:true});
+export const Reward=model<IReward>('Reward',schema);

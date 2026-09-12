@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { body } from 'express-validator';
+import { login, refresh, register } from '../../controllers/customerAuth.controller';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { validate } from '../../middlewares/validate';
+export const customerAuthRouter=Router();
+const shop=body('shopDomain').isString().matches(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i);
+customerAuthRouter.post('/register',[body('email').isEmail().normalizeEmail(),body('password').isLength({min:8,max:72}),body('name').optional().isString().trim().isLength({max:120}),body('birthday').optional({nullable:true,checkFalsy:true}).isISO8601(),shop,validate],asyncHandler(register));
+customerAuthRouter.post('/login',[body('email').isEmail().normalizeEmail(),body('password').isString().notEmpty(),shop,validate],asyncHandler(login));
+customerAuthRouter.post('/refresh',[body('refreshToken').isString().notEmpty(),validate],asyncHandler(refresh));

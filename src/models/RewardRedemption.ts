@@ -1,0 +1,4 @@
+import { Schema, model, Types } from 'mongoose';
+export interface IRewardRedemption {shopDomain:string;customerId:Types.ObjectId;rewardId:Types.ObjectId;pointsDeducted:number;discountCode?:string;shopifyDiscountId?:string;status:'pending'|'success'|'failed';failureReason?:string;createdAt:Date}
+const schema=new Schema<IRewardRedemption>({shopDomain:{type:String,required:true,index:true},customerId:{type:Schema.Types.ObjectId,ref:'Customer',required:true},rewardId:{type:Schema.Types.ObjectId,ref:'Reward',required:true},pointsDeducted:{type:Number,required:true},discountCode:String,shopifyDiscountId:String,status:{type:String,enum:['pending','success','failed'],default:'pending'},failureReason:String},{timestamps:{createdAt:true,updatedAt:false}});
+export const RewardRedemption=model<IRewardRedemption>('RewardRedemption',schema);

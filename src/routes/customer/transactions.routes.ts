@@ -1,0 +1,1 @@
+import { Router } from 'express';import { transactions } from '../../controllers/customer.controller';import { asyncHandler } from '../../utils/asyncHandler';export const transactionsRouter=Router();transactionsRouter.get('/',asyncHandler(transactions));

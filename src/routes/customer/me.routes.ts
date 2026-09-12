@@ -1,0 +1,1 @@
+import { Router } from 'express';import { me } from '../../controllers/customer.controller';import { asyncHandler } from '../../utils/asyncHandler';export const meRouter=Router();meRouter.get('/',asyncHandler(me));

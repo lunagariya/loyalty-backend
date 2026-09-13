@@ -32,7 +32,9 @@ The seed targets `demo-loyalty.myshopify.com` by default and creates 10 customer
 
 Create a Node Web Service connected to this repository. Use `npm ci && npm run build` as the build command, `npm start` as the start command, and `/health` as the health check. Set every production variable from `.env.example`, allow Render's outbound addresses in Atlas, and use the Render HTTPS URL for `SHOPIFY_APP_URL`. Run one web instance while the in-process cron is enabled; at scale, move expiration to a singleton worker/queue.
 
-On startup, the service reconciles webhook subscriptions for every active shop and moves stale delivery URLs to the current `SHOPIFY_APP_URL`. A shop whose `APP_UNINSTALLED` webhook has been received must complete OAuth again; never reactivate its database row manually because Shopify revokes its offline access token during uninstall.
+On startup, the service reconciles webhook subscriptions for every active shop and moves stale delivery URLs to the current `SHOPIFY_APP_URL`. The embedded admin uses Shopify managed installation: when an installed shop has no active database record, the first authenticated admin request exchanges its App Bridge ID token for a fresh offline access token, restores the shop, and registers its webhooks. Never reactivate an uninstalled database row manually because Shopify revokes its previous token during uninstall.
+
+Token exchange requests expiring offline tokens. The access token, rotating refresh token, access-token expiry, and refresh-token expiry are stored atomically on the shop record. GraphQL operations refresh tokens five minutes before expiry, and an active merchant session cycles legacy non-expiring tokens automatically when the app is opened.
 
 ## Assumptions
 

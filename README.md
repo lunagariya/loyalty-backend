@@ -32,6 +32,8 @@ The seed targets `demo-loyalty.myshopify.com` by default and creates 10 customer
 
 Create a Node Web Service connected to this repository. Use `npm ci && npm run build` as the build command, `npm start` as the start command, and `/health` as the health check. Set every production variable from `.env.example`, allow Render's outbound addresses in Atlas, and use the Render HTTPS URL for `SHOPIFY_APP_URL`. Run one web instance while the in-process cron is enabled; at scale, move expiration to a singleton worker/queue.
 
+On startup, the service reconciles webhook subscriptions for every active shop and moves stale delivery URLs to the current `SHOPIFY_APP_URL`. A shop whose `APP_UNINSTALLED` webhook has been received must complete OAuth again; never reactivate its database row manually because Shopify revokes its offline access token during uninstall.
+
 ## Assumptions
 
 - Purchase points are awarded on `orders/paid`; `orders/create` is acknowledged but does not award. This prevents rewards on unpaid orders.

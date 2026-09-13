@@ -1,7 +1,7 @@
 import { Session } from '@shopify/shopify-api';
 import { shopify } from '../config/shopify';
 import { IReward } from '../models/Reward';
-import { IShop } from '../models/Shop';
+import { IShop, Shop } from '../models/Shop';
 import { HydratedDocument } from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { logger } from '../config/logger';
@@ -17,16 +17,18 @@ export async function registerWebhooks(shop:HydratedDocument<IShop>,appUrl:strin
   for(const[topic,path]of topics){
     try{
       const uri=`${baseUrl}/webhooks/${path}`;
-      if(subscriptions.some(subscription=>subscription.topic===topic&&subscription.uri===uri))continue;
-      const response:any=await graphql.request(`mutation($topic:WebhookSubscriptionTopic!,$sub:WebhookSubscriptionInput!){webhookSubscriptionCreate(topic:$topic,webhookSubscription:$sub){webhookSubscription{id topic uri} userErrors{field message}}}`,{variables:{topic,sub:{uri,format:'JSON'}}});
-      const result=response.data?.webhookSubscriptionCreate,errors=[...(response.errors||[]),...(result?.userErrors||[])];
-      if(errors.length||!result?.webhookSubscription?.id)throw new Error(errors.map((error:any)=>error.message).join(', ')||'Shopify returned no subscription');
+      const alreadyRegistered=subscriptions.some(subscription=>subscription.topic===topic&&subscription.uri===uri);
+      if(!alreadyRegistered){
+        const response:any=await graphql.request(`mutation($topic:WebhookSubscriptionTopic!,$sub:WebhookSubscriptionInput!){webhookSubscriptionCreate(topic:$topic,webhookSubscription:$sub){webhookSubscription{id topic uri} userErrors{field message}}}`,{variables:{topic,sub:{uri,format:'JSON'}}});
+        const result=response.data?.webhookSubscriptionCreate,errors=[...(response.errors||[]),...(result?.userErrors||[])];
+        if(errors.length||!result?.webhookSubscription?.id)throw new Error(errors.map((error:any)=>error.message).join(', ')||'Shopify returned no subscription');
+      }
       for(const stale of subscriptions.filter(subscription=>subscription.topic===topic&&subscription.uri!==uri)){
         const removed:any=await graphql.request(`mutation($id:ID!){webhookSubscriptionDelete(id:$id){deletedWebhookSubscriptionId userErrors{field message}}}`,{variables:{id:stale.id}});
         const removalErrors=[...(removed.errors||[]),...(removed.data?.webhookSubscriptionDelete?.userErrors||[])];
         if(removalErrors.length)throw new Error(`cleanup failed: ${removalErrors.map((error:any)=>error.message).join(', ')}`);
       }
-      logger.info('webhook_subscription_registered',{shopDomain:shop.shopDomain,topic,uri});
+      logger.info(alreadyRegistered?'webhook_subscription_verified':'webhook_subscription_registered',{shopDomain:shop.shopDomain,topic,uri});
     }catch(error:any){
       const message=`${topic}: ${error.message}`;
       failures.push(message);
@@ -34,4 +36,15 @@ export async function registerWebhooks(shop:HydratedDocument<IShop>,appUrl:strin
     }
   }
   if(failures.length)throw new AppError(`Webhook registration failed: ${failures.join('; ')}`,502,'SHOPIFY_ERROR');
+}
+
+export async function reconcileInstalledShopWebhooks(appUrl:string){
+  const shops=await Shop.find({isActive:true}).select('+accessToken');
+  let succeeded=0,failed=0;
+  logger.info('webhook_reconciliation_started',{shopCount:shops.length,appUrl:appUrl.replace(/\/$/,'')});
+  for(const installedShop of shops){
+    try{await registerWebhooks(installedShop,appUrl);succeeded++;}
+    catch(error:any){failed++;logger.error('webhook_reconciliation_failed',{shopDomain:installedShop.shopDomain,message:error.message});}
+  }
+  logger.info('webhook_reconciliation_completed',{shopCount:shops.length,succeeded,failed});
 }
